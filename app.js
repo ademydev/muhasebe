@@ -3,6 +3,7 @@ const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 const localDate = (date=new Date()) => {const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,'0'),d=String(date.getDate()).padStart(2,'0');return `${y}-${m}-${d}`};
 const currentMonth = () => localDate().slice(0,7);
 const state = {account:'', data:null, view:'overview', month:currentMonth(), filters:{q:'',type:'all',from:'',to:'',min:'',max:'',sort:'desc'}};
+const cloudMode = location.hostname.endsWith('.github.io');
 const today = () => localDate();
 function applyTheme(theme){const safe=theme==='dark'?'dark':'light';document.documentElement.dataset.theme=safe;const button=$('#theme-toggle');if(button){button.textContent=safe==='dark'?'☀':'☾';button.setAttribute('aria-label',safe==='dark'?'Açık temaya geç':'Koyu temaya geç');button.title=safe==='dark'?'Açık tema':'Koyu tema'}}
 try{applyTheme(localStorage.getItem('hesap-theme')||'light')}catch{applyTheme('light')}
@@ -15,9 +16,9 @@ const money = cents => {
 const inputAmount = cents => ((cents||0)/100).toFixed(2).replace('.',',');
 const typeName = kind => kind==='income'?'Gelir':'Gider';
 const api = async (path, body) => {
-  if(location.hostname.endsWith('.github.io')){
-    if(!window.HesapBrowserStore)throw Error('Tarayıcı veri katmanı yüklenemedi. Sayfayı yenileyin.');
-    return window.HesapBrowserStore.request(path,body);
+  if(cloudMode){
+    if(!window.HesapCloudStore)throw Error('Bulut veri katmanı yüklenemedi. Sayfayı yenileyin.');
+    return window.HesapCloudStore.request(path,body);
   }
   let res;
   try {
@@ -147,7 +148,7 @@ function reportsView(){
 function settingsView(){
  const a=state.data.accounts.find(x=>x.id===state.account),s=state.data.summary;if(!a)return emptyAccounts();
  const archived=state.data.accounts.filter(x=>x.archived);
- return `${pageHead('Hesap ayarları','Bu hesabın adı ve açılış bakiyesi yalnızca bu hesabı etkiler.','<button class="button button-primary" data-action="edit-account">Hesabı düzenle</button>')}<section class="panel"><div class="settings-block"><div class="settings-head"><div><strong>${esc(a.name)}</strong><small>${esc(a.description||'Açıklama eklenmemiş')}</small></div><span class="pill ${a.archived?'open':'paid'}">${a.archived?'Arşivlendi':'Aktif'}</span></div><div class="settings-info"><span>Açılış bakiyesi: <b>${money(a.opening_balance)}</b></span><span>Oluşturulma: <b>${fmtDate(a.created_at)}</b></span></div></div><div class="settings-block"><div class="settings-head"><div><strong>Bakiye özeti</strong><small>Hesabın finansal durumu ve borç etkisi</small></div></div><div class="settings-info"><span>Gerçekleşmiş: <b>${money(s.realized)}</b></span><span>Kalan borç: <b>${money(s.remaining_debt)}</b></span><span>Kullanılabilir: <b>${money(s.available)}</b></span></div></div><div class="settings-block"><div class="settings-head"><div><strong>Hesap arşivleme</strong><small>Arşivlenen hesapların geçmişi korunur; yeni kayıt girilemez.</small></div><button class="button ${a.archived?'button-primary':'button-quiet'}" data-action="${a.archived?'restore-account':'archive-account'}">${a.archived?'Hesabı etkinleştir':'Hesabı arşivle'}</button></div></div><div class="settings-block"><div class="settings-head"><div><strong>Veri yedeği</strong><small>Tüm hesapları ve ilişkili kayıtları JSON olarak dışa veya içe aktarın.</small></div><div><button class="button button-quiet" data-action="backup">JSON yedek indir</button> <button class="button button-quiet" data-action="restore">Yedek geri yükle</button></div></div></div></section>${archived.length?`<section class="panel"><div class="panel-head"><div><div class="panel-title">Arşivlenmiş hesaplar</div></div></div><div class="record-list">${archived.map(x=>`<div class="record" style="grid-template-columns:1fr auto"><div><div class="record-title">${esc(x.name)}</div><div class="record-meta">${money(accountBalance(x.id))}</div></div><button class="button button-quiet" data-action="switch-account" data-id="${x.id}">Aç</button></div>`).join('')}</div></section>`:''}`
+ return `${pageHead('Hesap ayarları','Bu hesabın adı ve açılış bakiyesi yalnızca bu hesabı etkiler.','<button class="button button-primary" data-action="edit-account">Hesabı düzenle</button>')}<section class="panel"><div class="settings-block"><div class="settings-head"><div><strong>${esc(a.name)}</strong><small>${esc(a.description||'Açıklama eklenmemiş')}</small></div><span class="pill ${a.archived?'open':'paid'}">${a.archived?'Arşivlendi':'Aktif'}</span></div><div class="settings-info"><span>Açılış bakiyesi: <b>${money(a.opening_balance)}</b></span><span>Oluşturulma: <b>${fmtDate(a.created_at)}</b></span></div></div><div class="settings-block"><div class="settings-head"><div><strong>Bakiye özeti</strong><small>Hesabın finansal durumu ve borç etkisi</small></div></div><div class="settings-info"><span>Gerçekleşmiş: <b>${money(s.realized)}</b></span><span>Kalan borç: <b>${money(s.remaining_debt)}</b></span><span>Kullanılabilir: <b>${money(s.available)}</b></span></div></div><div class="settings-block"><div class="settings-head"><div><strong>Hesap arşivleme</strong><small>Arşivlenen hesapların geçmişi korunur; yeni kayıt girilemez.</small></div><button class="button ${a.archived?'button-primary':'button-quiet'}" data-action="${a.archived?'restore-account':'archive-account'}">${a.archived?'Hesabı etkinleştir':'Hesabı arşivle'}</button></div></div><div class="settings-block"><div class="settings-head"><div><strong>Hesabı sil</strong><small>Bu çalışma alanı ve ona bağlı tüm finansal kayıtlar kalıcı olarak silinir.</small></div><button class="button button-danger" data-action="delete-account">Hesabı sil</button></div></div><div class="settings-block"><div class="settings-head"><div><strong>Veri yedeği</strong><small>Tüm hesapları ve ilişkili kayıtları JSON olarak dışa veya içe aktarın.</small></div><div><button class="button button-quiet" data-action="backup">JSON yedek indir</button> <button class="button button-quiet" data-action="restore">Yedek geri yükle</button></div></div></div></section>${archived.length?`<section class="panel"><div class="panel-head"><div><div class="panel-title">Arşivlenmiş hesaplar</div></div></div><div class="record-list">${archived.map(x=>`<div class="record" style="grid-template-columns:1fr auto"><div><div class="record-title">${esc(x.name)}</div><div class="record-meta">${money(accountBalance(x.id))}</div></div><button class="button button-quiet" data-action="switch-account" data-id="${x.id}">Aç</button></div>`).join('')}</div></section>`:''}`
 }
 function accountBalance(aid){try{return state.data.accounts.find(a=>a.id===aid).opening_balance+state.data.transactions.filter(t=>t.account_id===aid).reduce((s,t)=>s+(t.kind==='income'?t.amount:-t.amount),0)}catch{return 0}}
 function render(){
@@ -215,6 +216,7 @@ document.addEventListener('click',async e=>{
   else if(action==='delete-collection'){const c=state.data.collections.find(x=>x.id===id);confirmAction('Tahsilat silinsin mi?',`${money(c.amount)} tahsilat ve ilişkili gelir kaldırılacak.`,f=>post({action:'collection.delete',account_id:state.account,id}))}
   else if(action==='new-category')showCategoryForm();else if(action==='edit-account')showAccountForm(state.data.accounts.find(x=>x.id===state.account));
   else if(action==='archive-account'){confirmAction('Hesap arşivlensin mi?',`${accountName()} hesabının kayıtları korunur.`,f=>post({action:'account.archive',account_id:state.account}).then(()=>{state.account=''}))}
+  else if(action==='delete-account'){const deleted=accountName();confirmAction('Hesap ve tüm kayıtları silinsin mi?',`${esc(deleted)} çalışma alanındaki tüm gelir, gider, borç, ödeme, alacak, tahsilat ve kategoriler kalıcı olarak silinecek. Bu işlem geri alınamaz; gerekirse önce yedek indirin.`,f=>post({action:'account.delete',account_id:state.account}))}
   else if(action==='restore-account')await post({action:'account.restore',account_id:state.account});else if(action==='switch-account'){state.account=id;await refresh()}
   else if(action==='backup')await downloadBackup();else if(action==='restore')$('#restore-file').click();else if(action==='export-csv')csvExport();
  }catch(err){fail(err)}
@@ -226,4 +228,42 @@ $('#main').addEventListener('input',e=>{if(['search-filter','min-filter','max-fi
 $('#main').addEventListener('change',e=>{if(e.target.id==='month-select'){if(/^\d{4}-\d{2}$/.test(e.target.value)){state.month=e.target.value;refresh().catch(fail)}return}const map={'type-filter':'type','from-filter':'from','to-filter':'to','min-filter':'min','max-filter':'max'};if(map[e.target.id]){state.filters[map[e.target.id]]=e.target.value;render()}});
 $('#main').addEventListener('click',e=>{if(e.target.id==='sort-filter'){state.filters.sort=state.filters.sort==='desc'?'asc':'desc';render();return}const step=e.target.closest('[data-month-step]');if(step){const [y,m]=state.month.split('-').map(Number);const d=new Date(y,m-1+Number(step.dataset.monthStep),1);state.month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;refresh().catch(fail);return}if(e.target.closest('[data-month-current]')){state.month=currentMonth();refresh().catch(fail)}});
 $('#theme-toggle').addEventListener('click',()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';applyTheme(theme);try{localStorage.setItem('hesap-theme',theme)}catch{toast('Tema bu oturumda değiştirildi; tarayıcı tercihi saklanamadı.',true)}});
-api('/api/state?month='+encodeURIComponent(state.month)).then(d=>{state.data=d;state.account=d.current_account;render();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})}).catch(err=>{$('#main').innerHTML=emptyState('Uygulama başlatılamadı',esc(err.message));});
+function authView(mode='login',message=''){
+ document.body.classList.add('auth-mode');$('#cloud-signout').hidden=true;
+ const titles={login:['Hesabınıza giriş yapın','Kişisel muhasebe verileriniz güvenli biçimde bulutta saklanır.'],signup:['Yeni kullanıcı hesabı oluşturun','E-posta adresinizi doğruladıktan sonra boş çalışma alanınız açılır.'],forgot:['Parolanızı sıfırlayın','E-posta adresinize güvenli bir sıfırlama bağlantısı gönderelim.'],reset:['Yeni parola belirleyin','Yeni parolanız en az 8 karakter olmalıdır.']};
+ const [title,desc]=titles[mode]||titles.login;
+ const email=mode==='reset'?'':`<label class="field full"><span>E-posta</span><input name="email" type="email" autocomplete="email" required maxlength="254" placeholder="ornek@eposta.com"></label>`;
+ const password=['login','signup'].includes(mode)?`<label class="field full"><span>Parola</span><input name="password" type="password" autocomplete="${mode==='login'?'current-password':'new-password'}" required minlength="8" placeholder="En az 8 karakter"></label>`:'';
+ const reset=mode==='reset'?`<label class="field full"><span>Yeni parola</span><input name="password" type="password" autocomplete="new-password" required minlength="8" placeholder="En az 8 karakter"></label>`:'';
+ const links=mode==='login'?`<button class="auth-link" type="button" data-auth="forgot">Parolamı unuttum</button><p class="auth-switch">Hesabınız yok mu? <button class="auth-link" type="button" data-auth="signup">Kayıt olun</button></p>`:mode==='signup'?`<p class="auth-switch">Zaten hesabınız var mı? <button class="auth-link" type="button" data-auth="login">Giriş yapın</button></p>`:mode==='forgot'?`<p class="auth-switch"><button class="auth-link" type="button" data-auth="login">Girişe dön</button></p>`:'';
+ $('#main').innerHTML=`<section class="auth-card"><div class="auth-mark"><img src="./favicon.svg" alt="" width="42" height="42"><div><strong>Hesap<span>.</span></strong><small>KİŞİSEL FİNANS</small></div></div><h1>${title}</h1><p class="auth-description">${desc}</p><form id="auth-form" data-mode="${mode}">${email}${password}${reset}<div class="auth-message" role="status" ${message?'':'hidden'}>${esc(message)}</div><button class="button button-primary auth-submit" type="submit">${({login:'Giriş yap',signup:'Kayıt ol',forgot:'Sıfırlama bağlantısı gönder',reset:'Parolayı güncelle'})[mode]}</button></form>${links}<p class="auth-privacy">Hesabınız yalnızca size ait çalışma alanlarına erişebilir.</p></section>`;
+}
+async function startCloudApp(){
+ document.body.classList.remove('auth-mode');$('#cloud-signout').hidden=false;
+ $('.offline-label').textContent='Supabase · Senkronize';$('.local-note strong').textContent='Verileriniz Supabase’de';$('.local-note small').textContent='Hesabınızın güvenli bulut kaydında saklanır.';
+ try{await refresh();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});}catch(err){$('#main').innerHTML=emptyState('Bulut verileri yüklenemedi',esc(err.message));}
+}
+if(cloudMode){
+ try{
+  authView();
+  window.HesapCloudStore.initialize().then(()=>window.HesapCloudStore.onAuthStateChange((event,session)=>{
+   if(event==='PASSWORD_RECOVERY'){authView('reset');return;}
+   if(session){if(event==='INITIAL_SESSION'||event==='SIGNED_IN')setTimeout(()=>startCloudApp(),0);}else if(event==='INITIAL_SESSION'||event==='SIGNED_OUT'){state.data=null;state.account='';authView('login');}
+  })).catch(err=>authView('login',err.message||'Supabase bağlantısı başlatılamadı.'));
+  $('#cloud-signout').addEventListener('click',()=>window.HesapCloudStore.signOut().catch(fail));
+  window.addEventListener('hesap-cloud-updated',()=>{if(window.HesapCloudStore.user)refresh().catch(fail)});
+  $('#main').addEventListener('click',e=>{const link=e.target.closest('[data-auth]');if(link)authView(link.dataset.auth);});
+  $('#main').addEventListener('submit',async e=>{
+   if(e.target.id!=='auth-form')return;e.preventDefault();const form=e.target,mode=form.dataset.mode,button=form.querySelector('[type=submit]');button.disabled=true;
+   try{
+    const values=new FormData(form),email=String(values.get('email')||'').trim(),password=String(values.get('password')||'');
+    if(mode==='login'){await window.HesapCloudStore.signIn(email,password);}
+    else if(mode==='signup'){const result=await window.HesapCloudStore.signUp(email,password);if(!result.session)authView('login','Kayıt oluşturuldu. Gelen kutunuzdaki doğrulama bağlantısını açın, ardından giriş yapın.');}
+    else if(mode==='forgot'){await window.HesapCloudStore.sendReset(email);authView('login','Parola sıfırlama bağlantısı e-posta adresinize gönderildiyse birkaç dakika içinde ulaşacaktır.');}
+    else if(mode==='reset'){await window.HesapCloudStore.updatePassword(password);authView('login','Parolanız güncellendi. Yeni parolanızla giriş yapabilirsiniz.');await window.HesapCloudStore.signOut();}
+   }catch(err){authView(mode,err.message||'İşlem tamamlanamadı.');}finally{const submit=$('#auth-form [type=submit]');if(submit)submit.disabled=false;}
+  });
+ }catch(err){authView('login',err.message||'Supabase bağlantısı başlatılamadı.');}
+}else{
+ api('/api/state?month='+encodeURIComponent(state.month)).then(d=>{state.data=d;state.account=d.current_account;render();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})}).catch(err=>{$('#main').innerHTML=emptyState('Uygulama başlatılamadı',esc(err.message));});
+}

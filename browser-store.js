@@ -34,15 +34,15 @@
     return {accounts:data.accounts,current_account:aid,summary:aid?summary(data,aid):null,monthly_summary:aid?monthSummary(data,aid,month):null,transactions:data.transactions.filter(x=>x.account_id===aid),debts:data.debts.filter(x=>x.account_id===aid&&!x.cancelled),debt_payments:data.debt_payments.filter(x=>x.account_id===aid),receivables:data.receivables.filter(x=>x.account_id===aid&&!x.cancelled),collections:data.collections.filter(x=>x.account_id===aid),categories:data.categories.filter(x=>x.account_id===aid)};
   };
   const addTransaction=(data,aid,kind,cents,day,description,category='',note='',linkedType='',linkedId='')=>{const text=String(description||'').trim();if(!text)throw Error('Açıklama boş olamaz.');data.transactions.push({id:id(),account_id:aid,date:date(day),description:text,kind,amount:cents,category:String(category||'').trim(),note:String(note||'').trim(),linked_type:linkedType,linked_id:linkedId,created_at:timestamp(),updated_at:timestamp()});};
-  const mutate = body => {
-    const data=read(),action=body.action;let resultAccount='';
+  const mutate = (body,suppliedData,noPersist=false) => {
+    const data=suppliedData||read(),action=body.action;let resultAccount='';
     if(action==='restore'){
       const incoming=body.data;if(!incoming||incoming.version!==1||!Array.isArray(incoming.accounts))throw Error('Yedek biçimi geçersiz veya desteklenmiyor.');if(body.import_id&&data.applied_imports.includes(body.import_id))return {ok:true,duplicate:true};
       const merged=clone(data),keys=['accounts','transactions','debts','debt_payments','receivables','collections','categories'];
       for(const key of keys){if(!Array.isArray(incoming[key]||[]))throw Error('Yedek içeriği bozuk.');const known=new Set(merged[key].map(x=>x.id));merged[key].push(...incoming[key].filter(x=>x?.id&&!known.has(x.id)));}
       const aids=new Set(merged.accounts.map(x=>x.id));for(const key of keys.slice(1)){const seen=new Set();for(const row of merged[key]){if(!row.id||seen.has(row.id)||!aids.has(row.account_id))throw Error('Yedekte kimlik veya hesap ilişkisi geçersiz.');seen.add(row.id);}}
       const debts=new Map(merged.debts.map(x=>[x.id,x])),recs=new Map(merged.receivables.map(x=>[x.id,x]));for(const p of merged.debt_payments)if(debts.get(p.debt_id)?.account_id!==p.account_id)throw Error('Yedekte borç ödeme ilişkisi geçersiz.');for(const c of merged.collections)if(recs.get(c.receivable_id)?.account_id!==c.account_id)throw Error('Yedekte tahsilat ilişkisi geçersiz.');
-      if(body.import_id)merged.applied_imports.push(body.import_id);write(merged);return {ok:true};
+      if(body.import_id)merged.applied_imports.push(body.import_id);if(!noPersist)write(merged);else Object.assign(data,merged);return {ok:true};
     }
     if(action==='account.create'){
       const name=String(body.name||'').trim();if(!name)throw Error('Hesap adı boş olamaz.');const a={id:id(),name,description:String(body.description||'').trim(),opening_balance:amount(body.opening_balance??'0'),created_at:date(body.created_at),archived:false,created_ts:timestamp(),updated_at:timestamp()};data.accounts.push(a);resultAccount=a.id;
@@ -50,6 +50,8 @@
       const a=account(data,body.account_id);a.name=String(body.name||'').trim();if(!a.name)throw Error('Hesap adı boş olamaz.');a.description=String(body.description||'').trim();a.opening_balance=amount(body.opening_balance);a.updated_at=timestamp();
     } else if(action==='account.archive'||action==='account.restore'){
       const a=account(data,body.account_id);a.archived=action==='account.archive';a.updated_at=timestamp();
+    } else if(action==='account.delete'){
+      account(data,body.account_id);for(const key of ['transactions','debts','debt_payments','receivables','collections','categories'])data[key]=data[key].filter(x=>x.account_id!==body.account_id);data.accounts=data.accounts.filter(x=>x.id!==body.account_id);
     } else if(action==='transaction.create'){
       const aid=body.account_id;account(data,aid,true);if(!['income','expense'].includes(body.kind))throw Error('İşlem türü geçersiz.');addTransaction(data,aid,body.kind,amount(body.amount),body.date,body.description,body.category,body.note);resultAccount=aid;
     } else if(action==='transaction.update'){
@@ -75,7 +77,7 @@
     } else if(action==='category.create'){
       const aid=body.account_id;account(data,aid,true);const name=String(body.name||'').trim(),kind=body.kind;if(!name||!['income','expense'].includes(kind))throw Error('Kategori alanlarını kontrol edin.');if(data.categories.some(x=>x.account_id===aid&&x.kind===kind&&x.name.toLocaleLowerCase('tr')===name.toLocaleLowerCase('tr')))throw Error('Bu kategori zaten var.');data.categories.push({id:id(),account_id:aid,name,kind,created_at:timestamp()});resultAccount=aid;
     } else throw Error('İşlem tanınmadı.');
-    write(data);return {ok:true,...(resultAccount?{account_id:resultAccount}:{})};
+    if(!noPersist)write(data);return {ok:true,...(resultAccount?{account_id:resultAccount}:{})};
   };
-  window.HesapBrowserStore={request:(path,body)=>{const data=read();if(body)return mutate(body);const url=new URL(path,location.href);if(url.pathname.endsWith('/api/backup'))return data;if(url.pathname.endsWith('/api/state'))return state(data,path);throw Error('İstenen adres bulunamadı.');}};
+  window.HesapBrowserStore={request:(path,body)=>{const data=read();if(body)return mutate(body);const url=new URL(path,location.href);if(url.pathname.endsWith('/api/backup'))return data;if(url.pathname.endsWith('/api/state'))return state(data,path);throw Error('İstenen adres bulunamadı.');},mutate:(body,data)=>mutate(body,data,true),projectState:(data,path)=>state(data,path)};
 })();

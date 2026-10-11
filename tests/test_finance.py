@@ -161,6 +161,21 @@ class FinanceTests(unittest.TestCase):
      self.assertEqual(response['monthly_summary']['income'],15000)
      self.assertEqual(response['monthly_summary']['expenses'],0)
 
+ def test_account_delete_removes_only_that_workspaces_financial_rows(self):
+    with tempfile.TemporaryDirectory() as directory:
+     app.STORE=Path(directory)/"data.json"
+     db=empty_database();aid=account(db,"private","1000");other=account(db,"other","2000")
+     for key in ("transactions","debts","receivables","categories"):
+      db[key]=[{"id":key+"-a","account_id":aid},{"id":key+"-b","account_id":other}]
+     db['debt_payments']=[{"id":"payment-a","account_id":aid,"debt_id":"debts-a"},{"id":"payment-b","account_id":other,"debt_id":"debts-b"}]
+     db['collections']=[{"id":"collection-a","account_id":aid,"receivable_id":"receivables-a"},{"id":"collection-b","account_id":other,"receivable_id":"receivables-b"}]
+     app.write_db(db)
+     app.api_post({"action":"account.delete","account_id":aid})
+     result=app.read_db()
+     self.assertEqual([x['id'] for x in result['accounts']],[other])
+     for key in ("transactions","debts","debt_payments","receivables","collections","categories"):
+      self.assertEqual([x['account_id'] for x in result[key]],[other])
+
  def test_theme_is_a_presentation_preference_and_backups_remain_available(self):
     root=Path(__file__).resolve().parents[1]
     js=(root/'app.js').read_text(encoding='utf-8')
@@ -188,7 +203,19 @@ class FinanceTests(unittest.TestCase):
     self.assertIn("navigator.serviceWorker.register('./sw.js')",app_js)
     self.assertIn("new URL('./', self.registration.scope)",worker)
     self.assertIn('"start_url": "./"',manifest)
-    self.assertIn('HesapBrowserStore.request',app_js)
+    cloud=(root/'cloud-store.js').read_text(encoding='utf-8')
+    schema=(root/'supabase-schema.sql').read_text(encoding='utf-8')
+    html_page=(root/'index.html').read_text(encoding='utf-8')
+    self.assertIn('HesapCloudStore.request',app_js)
+    self.assertIn('HesapBrowserStore.mutate(body,workingData)',cloud)
+    self.assertIn("eq('revision',revision)",cloud)
+    self.assertNotIn('localStorage',cloud)
+    self.assertIn('auth.uid() = user_id',schema)
+    self.assertIn('enable row level security',schema)
+    self.assertNotIn('service_role', (root/'supabase-config.js').read_text(encoding='utf-8'))
+    self.assertIn('supabase-config.js',html_page)
+    self.assertIn('cloud-store.js',html_page)
+    self.assertIn('url.origin !== self.location.origin',worker)
 
  def test_logo_and_favicon_share_the_same_relative_svg(self):
     root=Path(__file__).resolve().parents[1]

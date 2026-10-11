@@ -12,7 +12,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="#"><img class="brand-mark" src="./favicon.svg" alt="" width="36" height="36"><span>hesap<span class="brand-dot">.</span><small>KİŞİSEL FİNANS</small></span></a>
-    <div class="top-actions"><span class="offline-dot"></span><span class="offline-label">Yerel · Çevrimdışı hazır</span><button class="button button-quiet theme-toggle" id="theme-toggle" aria-label="Koyu temaya geç" title="Koyu tema">☾</button><button class="button button-quiet" id="backup-btn">Yedekle</button><button class="button button-primary" id="quick-add" hidden>+ Yeni işlem</button></div>
+    <div class="top-actions"><span class="offline-dot"></span><span class="offline-label">Yerel · Çevrimdışı hazır</span><button class="button button-quiet theme-toggle" id="theme-toggle" aria-label="Koyu temaya geç" title="Koyu tema">☾</button><button class="button button-quiet app-only" id="backup-btn">Yedekle</button><button class="button button-primary app-only" id="quick-add" hidden>+ Yeni işlem</button><button class="button button-quiet" id="cloud-signout" hidden>Çıkış</button></div>
   </header>
   <div class="shell">
     <aside class="sidebar">
@@ -37,7 +37,9 @@
   <div id="modal-root"></div>
   <div id="toast-root" aria-live="polite"></div>
   <input id="restore-file" type="file" accept="application/json,.json" hidden>
+  <script src="./supabase-config.js"></script>
   <script src="./browser-store.js" defer></script>
+  <script src="./cloud-store.js" defer></script>
   <script src="./app.js" defer></script>
 </body>
 </html>

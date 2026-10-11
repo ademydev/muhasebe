@@ -181,6 +181,12 @@ def api_post(body: dict) -> Any:
             item = account(data, body.get("account_id", ""))
             item["archived"] = False
             item["updated_at"] = now()
+        elif action == "account.delete":
+            aid = body.get("account_id", "")
+            account(data, aid)
+            for key in ("transactions", "debts", "debt_payments", "receivables", "collections", "categories"):
+                data[key] = [row for row in data[key] if row["account_id"] != aid]
+            data["accounts"] = [row for row in data["accounts"] if row["id"] != aid]
         elif action == "transaction.create":
             aid = body.get("account_id", "")
             active_account(data, aid)
