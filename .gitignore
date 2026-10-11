@@ -1,0 +1,12 @@
+# Local finance data and backups — never commit personal records.
+data.json
+data.json.tmp
+*.backup.json
+hesap-yedek-*.json
+
+# Python and local development files.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store

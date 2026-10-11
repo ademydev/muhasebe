@@ -1,0 +1,9 @@
+{
+  "name": "Hesap · Kişisel Muhasebe",
+  "short_name": "Hesap",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f7f8",
+  "theme_color": "#f6f7f8",
+  "lang": "tr"
+}

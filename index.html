@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f7f8">
+  <title>Hesap · Kişisel Muhasebe</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">₺</span><span>hesap<span class="brand-dot">.</span><small>KİŞİSEL FİNANS</small></span></a>
+    <div class="top-actions"><span class="offline-dot"></span><span class="offline-label">Yerel · Çevrimdışı hazır</span><button class="button button-quiet theme-toggle" id="theme-toggle" aria-label="Koyu temaya geç" title="Koyu tema">☾</button><button class="button button-quiet" id="backup-btn">Yedekle</button><button class="button button-primary" id="quick-add" hidden>+ Yeni işlem</button></div>
+  </header>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="side-label">ÇALIŞMA ALANI</div>
+      <label class="select-wrap"><span class="sr-only">Hesap seçin</span><select id="account-select"><option value="">Hesap seçin</option></select><span class="chevron">⌄</span></label>
+      <button class="add-account" id="add-account"><span>＋</span> Yeni hesap oluştur</button>
+      <div class="side-rule"></div>
+      <nav class="nav" aria-label="Ana menü">
+        <button class="nav-item active" data-view="overview"><span>▤</span> Genel görünüm</button>
+        <button class="nav-item" data-view="transactions"><span>⇄</span> Gelir &amp; gider</button>
+        <button class="nav-item" data-view="debts"><span>↗</span> Borçlar <i id="debt-count"></i></button>
+        <button class="nav-item" data-view="receivables"><span>↙</span> Alacaklar <i id="receivable-count"></i></button>
+        <button class="nav-item" data-view="reports"><span>▥</span> Raporlar</button>
+      </nav>
+      <div class="sidebar-spacer"></div>
+      <div class="local-note"><span class="lock-icon">▣</span><div><strong>Verileriniz bu cihazda</strong><small>İnternet gerekmez. Yedek almayı unutmayın.</small></div></div>
+      <button class="nav-item settings-link" data-view="settings"><span>⚙</span> Hesap ayarları</button>
+      <div class="side-footer">SÜRÜM 1.0 <span>·</span> TRY</div>
+    </aside>
+    <main id="main" class="main-content"><div class="loading">Yükleniyor…</div></main>
+  </div>
+  <div id="modal-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+  <input id="restore-file" type="file" accept="application/json,.json" hidden>
+  <script src="/app.js" defer></script>
+</body>
+</html>
