@@ -37,10 +37,11 @@ const api = async (path, body) => {
   return data;
 };
 const post = async body => {const result=await api('/api/action', body); if(result.account_id)state.account=result.account_id; await refresh(); return result;};
-async function refresh(){
+async function refresh(force=false){
  const requested=state.account;
  const params=new URLSearchParams({month:state.month});if(requested)params.set('account',requested);
- const d=await api('/api/state?'+params.toString());
+ const path='/api/state?'+params.toString();
+ const d=cloudMode?await window.HesapCloudStore.request(path,undefined,{force}):await api(path);
  state.data=d;state.account=requested&&d.accounts.some(x=>x.id===requested)?requested:(d.current_account||'');render();
 }
 function toast(message,error=false){const root=$('#toast-root'), n=document.createElement('div');n.className='toast'+(error?' error':'');n.textContent=message;root.replaceChildren(n);setTimeout(()=>n.remove(),2600)}
@@ -164,7 +165,7 @@ function render(){
 function openModal(title,desc,fields,submitLabel,callback,wide=false){
  const root=$('#modal-root');root.innerHTML=`<div class="modal-backdrop"><form class="modal ${wide?'wide':''}" id="active-form"><div class="modal-head"><div><div class="modal-title">${title}</div><div class="modal-desc">${desc}</div></div><button class="modal-close" type="button" data-close>×</button></div><div class="modal-body"><div class="form-grid">${fields}</div><div class="form-error" id="form-error"></div></div><div class="modal-foot"><button type="button" class="button button-quiet" data-close>Vazgeç</button><button class="button button-primary" type="submit">${submitLabel}</button></div></form></div>`;
  root.querySelectorAll('[data-close]').forEach(x=>x.addEventListener('click',closeModal));root.querySelector('.modal-backdrop').addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))closeModal()});
- $('#active-form').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;try{await callback(new FormData(e.currentTarget));closeModal();toast('Kaydedildi.');await refresh()}catch(err){$('#form-error').textContent=err.message;$('#form-error').style.display='block';btn.disabled=false}});
+ $('#active-form').addEventListener('submit',async e=>{e.preventDefault();const btn=e.currentTarget.querySelector('[type=submit]');btn.disabled=true;try{await callback(new FormData(e.currentTarget));closeModal();toast('Kaydedildi.')}catch(err){$('#form-error').textContent=err.message;$('#form-error').style.display='block';btn.disabled=false}});
 }
 function closeModal(){$('#modal-root').replaceChildren()}
 const field=(label,name,type='text',value='',placeholder='',opts={})=>`<div class="field ${opts.full?'full':''}"><label for="f-${name}">${label}${opts.optional?' <span class="optional">· isteğe bağlı</span>':''}</label>${type==='select'?`<select id="f-${name}" name="${name}" ${opts.required?'required':''}>${opts.options}</select>`:type==='textarea'?`<textarea id="f-${name}" name="${name}" placeholder="${esc(placeholder)}">${esc(value)}</textarea>`:`<div class="${opts.suffix?'input-suffix':''}"><input id="f-${name}" name="${name}" type="${type}" value="${esc(value)}" placeholder="${esc(placeholder)}" ${opts.required?'required':''} ${opts.min!==undefined?`min="${opts.min}"`:''} ${opts.step?`step="${opts.step}"`:''}>${opts.suffix?`<span>${opts.suffix}</span>`:''}</div>`}</div>`;
@@ -251,7 +252,7 @@ if(cloudMode){
    if(session){if(event==='INITIAL_SESSION'||event==='SIGNED_IN')setTimeout(()=>startCloudApp(),0);}else if(event==='INITIAL_SESSION'||event==='SIGNED_OUT'){state.data=null;state.account='';authView('login');}
   })).catch(err=>authView('login',err.message||'Supabase bağlantısı başlatılamadı.'));
   $('#cloud-signout').addEventListener('click',()=>window.HesapCloudStore.signOut().catch(fail));
-  window.addEventListener('hesap-cloud-updated',()=>{if(window.HesapCloudStore.user)refresh().catch(fail)});
+  window.addEventListener('hesap-cloud-updated',()=>{if(window.HesapCloudStore.user)refresh(true).catch(fail)});
   $('#main').addEventListener('click',e=>{const link=e.target.closest('[data-auth]');if(link)authView(link.dataset.auth);});
   $('#main').addEventListener('submit',async e=>{
    if(e.target.id!=='auth-form')return;e.preventDefault();const form=e.target,mode=form.dataset.mode,button=form.querySelector('[type=submit]');button.disabled=true;

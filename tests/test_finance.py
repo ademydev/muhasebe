@@ -23,6 +23,16 @@ def account(db, name, opening):
 
 
 class FinanceTests(unittest.TestCase):
+ def test_cloud_state_cache_is_session_scoped_and_writes_use_revision_guard(self):
+    source = (Path(__file__).resolve().parents[1] / "cloud-store.js").read_text()
+    self.assertIn("cachedOwner===ownerId&&cachedState", source)
+    self.assertIn("cachedOwner=null;cachedState=null;loadPromise=null", source)
+    self.assertIn("loadOrCreate(ownerId,options.force===true)", source)
+    self.assertIn(".eq('user_id',ownerId).eq('revision',revision)", source)
+    self.assertIn("cachedOwner=ownerId;cachedState=workingData", source)
+    self.assertIn("requestSamples:metrics.requests.length", source)
+    self.assertNotIn("localStorage", source)
+
  def test_money_uses_integer_kurus_and_locale(self):
     assert money_to_minor("1.693,36") == 169336
     assert money_to_minor("1,01") == 101
