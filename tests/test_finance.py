@@ -23,6 +23,16 @@ def account(db, name, opening):
 
 
 class FinanceTests(unittest.TestCase):
+ def test_opening_balance_zero_comma_and_negative_policy(self):
+    self.assertEqual(money_to_minor("0"), 0)
+    self.assertEqual(money_to_minor("1250,50"), 125050)
+    with self.assertRaises(ValueError):
+        money_to_minor("-1")
+    source = (Path(__file__).resolve().parents[1] / "app.js").read_text()
+    self.assertIn("inputmode:'decimal'", source)
+    self.assertIn("String(f.get('amount')??'').trim()||'0'", source)
+    self.assertIn("inputAmount(a.opening_balance??0)", source)
+
  def test_cloud_state_cache_is_session_scoped_and_writes_use_revision_guard(self):
     source = (Path(__file__).resolve().parents[1] / "cloud-store.js").read_text()
     self.assertIn("cachedOwner===ownerId&&cachedState", source)
@@ -265,6 +275,18 @@ class FinanceTests(unittest.TestCase):
     result=app.api_get('/api/state',{'account':[aid]})
     self.assertEqual((result['summary']['realized'],len(result['transactions'])),(25050,1))
     self.assertTrue((Path(directory)/'data.json').exists())
+
+
+ def test_opening_balance_zero_and_comma_decimal_persist(self):
+  with tempfile.TemporaryDirectory() as directory:
+    app.STORE=Path(directory)/"data.json"
+    zero=app.api_post({"action":"account.create","name":"Zero","opening_balance":"0","created_at":"2026-10-11"})
+    decimal=app.api_post({"action":"account.create","name":"Decimal","opening_balance":"1250,50","created_at":"2026-10-11"})
+    saved=json.loads(app.STORE.read_text(encoding="utf-8"))
+    balances={row["id"]:row["opening_balance"] for row in saved["accounts"]}
+    self.assertEqual(balances[zero["account_id"]],0)
+    self.assertEqual(balances[decimal["account_id"]],125050)
+    self.assertEqual(app.api_get('/api/state',{'account':[decimal['account_id']]})['summary']['realized'],125050)
 
 
 if __name__ == '__main__':
