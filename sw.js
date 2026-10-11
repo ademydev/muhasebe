@@ -1,6 +1,6 @@
-const CACHE = 'hesap-v5';
+const CACHE = 'hesap-v6';
 const BASE = new URL('./', self.registration.scope);
-const FILES = ['./', './style.css', './app.js', './browser-store.js', './manifest.webmanifest'];
+const FILES = ['./', './style.css', './app.js', './browser-store.js', './manifest.webmanifest', './favicon.svg'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(file => new URL(file, BASE))))));
 self.addEventListener('activate', event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))));
 self.addEventListener('fetch', event => {

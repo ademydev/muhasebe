@@ -1,4 +1,5 @@
 import json
+import xml.etree.ElementTree as ET
 import os
 import subprocess
 import sys
@@ -188,6 +189,17 @@ class FinanceTests(unittest.TestCase):
     self.assertIn("new URL('./', self.registration.scope)",worker)
     self.assertIn('"start_url": "./"',manifest)
     self.assertIn('HesapBrowserStore.request',app_js)
+
+ def test_logo_and_favicon_share_the_same_relative_svg(self):
+    root=Path(__file__).resolve().parents[1]
+    html=(root/'index.html').read_text(encoding='utf-8')
+    worker=(root/'sw.js').read_text(encoding='utf-8')
+    self.assertIn('href="./favicon.svg?v=1" type="image/svg+xml"',html)
+    self.assertIn('src="./favicon.svg"',html)
+    self.assertIn("'./favicon.svg'",worker)
+    svg=ET.parse(root/'favicon.svg').getroot()
+    self.assertEqual(svg.attrib['viewBox'],'0 0 64 64')
+    self.assertEqual(svg.find('{http://www.w3.org/2000/svg}rect').attrib['fill'],'#198460')
 
 
  def test_http_flow_page_and_local_persistence(self):

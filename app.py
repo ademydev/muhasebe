@@ -314,6 +314,7 @@ class Handler(BaseHTTPRequestHandler):
         content = target.read_bytes(); content_type = "text/html; charset=utf-8" if target.suffix == ".html" else "text/plain; charset=utf-8"
         if target.suffix == ".js": content_type = "text/javascript; charset=utf-8"
         if target.suffix == ".css": content_type = "text/css; charset=utf-8"
+        if target.suffix == ".svg": content_type = "image/svg+xml"
         self.send_response(200); self.send_header("Content-Type", content_type); self.send_header("Content-Length", str(len(content)))
         if target.name == "sw.js": self.send_header("Service-Worker-Allowed", "/")
         self.end_headers(); self.wfile.write(content)
