@@ -1,4 +1,4 @@
-const CACHE = 'hesap-v4';
+const CACHE = 'hesap-v5';
 const BASE = new URL('./', self.registration.scope);
 const FILES = ['./', './style.css', './app.js', './browser-store.js', './manifest.webmanifest'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(file => new URL(file, BASE))))));
