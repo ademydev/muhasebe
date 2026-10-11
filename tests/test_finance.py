@@ -189,6 +189,19 @@ class FinanceTests(unittest.TestCase):
     self.assertIn("action==='restore'",js)
     self.assertIn("action==='export-csv'",js)
 
+ def test_signout_is_at_sidebar_bottom_and_keeps_auth_handler(self):
+    root=Path(__file__).resolve().parents[1]
+    html=(root/'index.html').read_text(encoding='utf-8')
+    css=(root/'style.css').read_text(encoding='utf-8')
+    js=(root/'app.js').read_text(encoding='utf-8')
+    self.assertLess(html.index('class="side-footer"'),html.index('id="cloud-signout"'))
+    top_actions=html.split('class="top-actions"',1)[1].split('</div>',1)[0]
+    self.assertNotIn('cloud-signout',top_actions)
+    self.assertIn('.sidebar{width:244px',css)
+    self.assertIn('.sidebar-signout{display:flex',css)
+    self.assertIn('@media(max-width:760px){.sidebar-signout',css)
+    self.assertIn("HesapCloudStore.signOut()",js)
+
  def test_github_pages_assets_and_worker_are_repository_relative(self):
     root=Path(__file__).resolve().parents[1]
     html=(root/'index.html').read_text(encoding='utf-8')
