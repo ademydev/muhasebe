@@ -173,6 +173,22 @@ class FinanceTests(unittest.TestCase):
     self.assertIn("action==='restore'",js)
     self.assertIn("action==='export-csv'",js)
 
+ def test_github_pages_assets_and_worker_are_repository_relative(self):
+    root=Path(__file__).resolve().parents[1]
+    html=(root/'index.html').read_text(encoding='utf-8')
+    app_js=(root/'app.js').read_text(encoding='utf-8')
+    worker=(root/'sw.js').read_text(encoding='utf-8')
+    manifest=(root/'manifest.webmanifest').read_text(encoding='utf-8')
+    self.assertIn('href="./style.css"',html)
+    self.assertIn('src="./browser-store.js"',html)
+    self.assertIn('src="./app.js"',html)
+    self.assertNotIn('href="/style.css"',html)
+    self.assertNotIn('src="/app.js"',html)
+    self.assertIn("navigator.serviceWorker.register('./sw.js')",app_js)
+    self.assertIn("new URL('./', self.registration.scope)",worker)
+    self.assertIn('"start_url": "./"',manifest)
+    self.assertIn('HesapBrowserStore.request',app_js)
+
 
  def test_http_flow_page_and_local_persistence(self):
   with tempfile.TemporaryDirectory() as directory:

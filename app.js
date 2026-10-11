@@ -15,6 +15,10 @@ const money = cents => {
 const inputAmount = cents => ((cents||0)/100).toFixed(2).replace('.',',');
 const typeName = kind => kind==='income'?'Gelir':'Gider';
 const api = async (path, body) => {
+  if(location.hostname.endsWith('.github.io')){
+    if(!window.HesapBrowserStore)throw Error('Tarayıcı veri katmanı yüklenemedi. Sayfayı yenileyin.');
+    return window.HesapBrowserStore.request(path,body);
+  }
   let res;
   try {
     res=await fetch(path, body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{});
@@ -222,4 +226,4 @@ $('#main').addEventListener('input',e=>{if(['search-filter','min-filter','max-fi
 $('#main').addEventListener('change',e=>{if(e.target.id==='month-select'){if(/^\d{4}-\d{2}$/.test(e.target.value)){state.month=e.target.value;refresh().catch(fail)}return}const map={'type-filter':'type','from-filter':'from','to-filter':'to','min-filter':'min','max-filter':'max'};if(map[e.target.id]){state.filters[map[e.target.id]]=e.target.value;render()}});
 $('#main').addEventListener('click',e=>{if(e.target.id==='sort-filter'){state.filters.sort=state.filters.sort==='desc'?'asc':'desc';render();return}const step=e.target.closest('[data-month-step]');if(step){const [y,m]=state.month.split('-').map(Number);const d=new Date(y,m-1+Number(step.dataset.monthStep),1);state.month=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;refresh().catch(fail);return}if(e.target.closest('[data-month-current]')){state.month=currentMonth();refresh().catch(fail)}});
 $('#theme-toggle').addEventListener('click',()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';applyTheme(theme);try{localStorage.setItem('hesap-theme',theme)}catch{toast('Tema bu oturumda değiştirildi; tarayıcı tercihi saklanamadı.',true)}});
-api('/api/state').then(d=>{state.data=d;state.account=d.current_account;render();if('serviceWorker'in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{})}).catch(err=>{$('#main').innerHTML=emptyState('Yerel veri yüklenemedi',esc(err.message));});
+api('/api/state?month='+encodeURIComponent(state.month)).then(d=>{state.data=d;state.account=d.current_account;render();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{})}).catch(err=>{$('#main').innerHTML=emptyState('Uygulama başlatılamadı',esc(err.message));});
